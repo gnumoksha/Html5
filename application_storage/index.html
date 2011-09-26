@@ -1,0 +1,166 @@
+<!DOCTYPE HTML>
+<!--
+	/**
+	* Arquivos de cache devem ser enviados com o tipo text/cache-manifest
+	* No apache adicione AddType text/cache-manifest .appcache
+	* no arquivo .htaccess
+	* OU
+	* xampp
+	* xampp\apache\conf\mime.types
+	* wamp
+	* wamp\bin\apache\Apachex.x.xx\conf
+	* apache2 no ubuntu
+	* /etc/apache2/mods-enabled/mime.conf
+	* 
+	* reinicie o apache
+	*/
+-->
+<html lang="pt-br" manifest="manifest.appcache">
+<head>
+	<meta charset="UTF-8">
+	<title>Application Cache</title>
+	<link rel="stylesheet" type="text/css" href="estilo.css">
+	<script src="../js/jquery.min.js" type="text/javascript"></script>
+</head>
+<body>
+	
+	<section id="container">
+		<nav id="menu">
+		
+		</nav>
+		
+		<section id="message">
+			<b>Status do cache: </b> <span id="status_cache">não há</span> <br/>
+			<b>Status da conexão: </b> <span id="status_conexao">não há</span> <br/>
+		</section>
+		
+		<input type="button" onclick="window.applicationCache.update();" value="Atualizar o status do cache" />
+		<input type="button" onclick="window.applicationCache.swapCache();" value="Atualizar para o ultimo cache" />
+		<footer id="footer">
+			
+		</footer>
+	</section>
+	
+	<script type="text/javascript">
+		
+		/**
+		 * ##############################
+		 * ######## STATUS CACHE ########
+		 * ##############################
+		 */
+		
+		/**
+		 * O cache é limitado ha 5MB por dominio, no entando aplicativos
+		 * Chrome Web Store podem ter este limite removido utilizando unlimitedStorage
+		 * Ja no firefox o usuario pode modificar o tamanho do armazenamento
+		 */
+		
+		var cacheStatus = ["0 - UNCACHED Não há cache ativo.",
+			"1 - IDLE O cache está atualizado. ",
+			"2 - CHECKING O arquivo de manifesto está sendo baixado e conferido.",
+			"3 - DOWNLOADING As URLs vinculadas no manifesto estão sendo baixadas.",
+			"4 - UPDATEREADY O cache é antigo, mas ainda não foi marcado como obsoleto.",
+			"5 - OBSOLETE O cache foi marcado como obsoleto e precisa ser atualizado assim que possível."];
+		function cacheEventos(e) {
+			console.log ('Evento '+cacheStatus[window.applicationCache.status] );
+			$('#status_cache').html(cacheStatus[window.applicationCache.status]);
+		}
+
+		function cacheEventosErro(e) {
+			console.log ('Erro '+cacheStatus[window.applicationCache.status] );
+			$('#status_cache').html(cacheStatus[window.applicationCache.status]);
+		};
+		
+		appCache = window.applicationCache;
+		// Executado apos o primeiro cache do manifest
+		appCache.addEventListener('cached', cacheEventos, false);
+		// Verificando atualizacao. Sempre o primeiro evento disparado na sequencia
+		appCache.addEventListener('checking', cacheEventos, false);
+		// Uma atualização foi encontrada. O navegador está buscando arquivos.
+		appCache.addEventListener('downloading', cacheEventos, false);
+		// O manifest retornou 404 ou 410, o download falhou,
+		// o manifest foi alterado enquanto o download estava em andamento,
+		// ou o manifest esta erro
+		appCache.addEventListener('error', cacheEventosErro, false);
+		// Executado apos o primeiro download do manifest
+		appCache.addEventListener('noupdate', cacheEventos, false);
+		// Acionado se o arquivo de manifest retorna um 404 ou 410.
+		// Isto resulta em todo o cache sendo ignorado
+		appCache.addEventListener('obsolete', cacheEventos, false);
+		// Executado para cada recurso listado no manifest, enquanto está sendo lido
+		appCache.addEventListener('progress', cacheEventos, false);
+		// Acionado quando os recursos do manifest foram recentemente rebaixados
+		appCache.addEventListener('updateready', cacheEventos, false);
+		
+		/**
+		 * a funcao window.applicationCache.update() tenta atualizar o cache
+		 * caso o arquivo manifest teha sido alterado. Se a atualizaçao for bem sucedida
+		 * (o status é UPDATEREADY) a funcao window.applicationCache.swapCache() deve ser chamada
+		 * para trocar o cache antigo pelo novo.
+		 * Por padrão este processo necessita que a pagina seja atualizada duas vezes, uma
+		 * para baixar o cache novo e outra para trocar o cache para o novo.
+		 */
+		
+		// Checa, durante o carregamento da pagina, se um novo cache estah disponivel
+		window.addEventListener('load', function(e) {
+			console.log ('evento load foi chamado');
+			window.applicationCache.addEventListener('updateready', function(e) {
+				console.log ('status é updateready');
+				if (window.applicationCache.status == window.applicationCache.UPDATEREADY) {
+					console.log ('browser baixou o novo cache');
+					// Browser baixou o novo cache
+					// troca para o cache novo e atualiza a pagina
+					window.applicationCache.swapCache();
+					if (confirm('Uma nova versao do site está disponivel. Carregar agora?')) {
+						window.location.reload();
+					}
+				} else {
+					// Manifest nao foi alterado
+					console.log ('manifest nao foi atualizado');
+					}
+				}, false);
+		}, false);
+		
+		/*applicationCache.addEventListener('updateready', function() {
+			if (confirm('An update is available. Reload now?')) {
+				window.location.reload();
+			}
+		});*/
+
+		/**
+		 * ##############################
+		 * ####### STATUS CONEXAO #######
+		 * ##############################
+		 */
+		function atualizaStatusConexao(mensagem,conectado) {
+			if (conectado) {
+				
+			}
+			else {
+				
+			}
+			document.querySelector('#status_conexao').innerHTML = mensagem;
+		}
+		
+		// atualiza status da conexao enquanto a pagina está sendo carregada
+		window.addEventListener('load', function(e) {
+			if (navigator.onLine) {
+				atualizaStatusConexao('Online', true);
+			} else {
+				atualizaStatusConexao('Offline', false);
+    		}
+		}, false);
+		
+		// atualiza status da conexao depois que a pagina ja foi carregada
+		window.addEventListener('online', function(e) {
+			atualizaStatusConexao('Online',true);
+		}, false);
+
+		window.addEventListener('offline', function(e) {
+			atualizaStatusConexao('Offline',true);
+		}, false);
+		
+	</script>
+	
+</body>
+</html>

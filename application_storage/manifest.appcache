@@ -1,0 +1,40 @@
+CACHE MANIFEST
+# a linha acima deve ser sempre a primeira no arquivo
+# informando a versao deste arquivo, altere-a para forcar a atualizacao do cache
+#VERSAO 0.18
+
+# os elementos que devem ser mantidos em cache
+# nao sao permitidos caracteres curinga, cada linha eh um registro
+CACHE:
+index.html
+estilo.css
+js/jquery.min.js
+js/util.js
+
+# versoes alternativas,para uso offline, para paginas acessadas online
+# cada linha eh um registro, caracteres curinga sao permitidos
+#FALLBACK:
+#/paginaonline.html /paginaoffline.html
+
+#quais elementos nunca deverao ficar em cache
+NETWORK:
+http://*
+https://*
+
+##############################
+# ---------- NOTAS -----------
+# > o manifest deve estar em texto puro, UTF-8, pode contar com um
+#   caractere BOM e aceita \r, \n, \r\n como quebra de linha
+# > para representar * utilize http://* https://*
+#   o firefox nao reconhece apenas o *
+# > as entradas do manifest devem vir da mesma origem (host e porta)
+#   e ter o mesmo eschema do arquivo de manifesto em si
+#
+#
+#
+#
+# Mais informacoes
+# https://developer.mozilla.org/en/offline_resources_in_firefox
+# http://appcachefacts.info/
+# validador de manifest http://manifest-validator.com/validate
+############################## 
