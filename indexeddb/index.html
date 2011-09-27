@@ -1,0 +1,127 @@
+<!DOCTYPE HTML>
+<html lang="pt-br">
+<head>
+	<meta charset="UTF-8">
+	<title>IndexedDB</title>
+	<link rel="stylesheet" type="text/css" href="estilo.css">
+	<script src="../js/jquery.min.js" type="text/javascript"></script>
+</head>
+<body>
+	
+	<section id="container">
+		<nav id="menu">
+		
+		</nav>
+		
+		<section id="message">
+			
+		</section>
+		
+
+		<footer id="footer">
+			
+		</footer>
+	</section>
+	
+	<script type="text/javascript">
+	
+	window.onload = function() {
+		
+		var requisicao;
+		// navegadores baseados em Gecko = mozIndexedDB
+		// baseados em webkit = webkitIndexedDB
+		indexedDB = mozIndexedDB;
+		
+		//cria ou abre um banco de dados
+		requisicao = indexedDB.open('Banco','banco de dados para testes');
+		requisicao.onerror = function(evento) {
+			// Principais erros:
+			// Usuario negou o acesso, usuario está navegando em modo privado
+			// Tratamento generico para todos os erros:
+			$('#message').html('Erro ao criar/abrir o banco de dados: '+evento.target.errorCode);
+		};
+		requisicao.onsuccess = function (evento) {
+			$('#message').html('Sucesso ao criar/abrir o banco de dados');
+			banco = requisicao.result; // result eh uma instancia de IDBDatabase
+			
+			// versao pode ser qualquer coisa
+			// setVersion retorna um objeto IDBRequest
+			requisicao = banco.setVersion ('teste'); 
+			requisicao.onerror = function (evento) {
+				$('#message').html('Erro ao setar a versao do banco de dados: '+evento.target.errorCode);
+			}
+			requisicao.onsuccess = function(evento) {
+				$('#message').html('Sucesso ao setar a versao do banco de dados');
+				
+				// cria uma 'loja', algo semelhante a uma tabela
+				// keyPath eh o campo unico para cada registro
+				/*var objetoStore = banco.createObjectStore('pessoas',{ keyPath: 'cpf'} );
+				objetoStore.createIndex('nome','nome', {unique: false});
+				objetoStore.createIndex('email','email',{unique: true});
+				*/
+				
+				// ###### Inserindo dados
+				const dados = [
+					{ cpf: '123456', nome: 'Tobias', email: 'tobiasette5@gmail.com' }
+				];
+				// transaction recebe uma lista de 'lojas' (se nenhuma for informada,
+				// usara todas as 'lojas' do objeto), o modo a ser usado (se nenhum informado
+				// usara somente leitura)
+				var transacao = banco.transaction(['pessoas'],IDBTransaction.READ_WRITE);
+				transacao.oncomplete = function (evento) {
+					console.info ('transacao completada!');
+				};
+				transacao.onerror = function (evento) {
+					console.error ('erro na transacao. Cod: '+evento.target.errorCode);
+				};
+				objetoStore = transacao.objectStore('pessoas');
+				for ( i in dados) {
+					requisicao = objetoStore.add(dados[i]); // o metodo add nao insere dados que contenham uma chave repetida
+					requisicao.onsuccess = function(evento) {
+						// evento.target.result recebe o valor da chave do item que foi inserido
+						// neste caso é o cpf
+						console.log ('dados com o indice '+evento.target.result+' inseridos!');
+					};
+				}
+				
+				// ##### obtendo dados
+				transacao = banco.transaction(['pessoas']);
+				objetoStore = transacao.objectStore('pessoas');
+				requisicao = objetoStore.get('123456');
+				requisicao.onerror = function (evento) {
+					console.error ('Erro ao consultar o banco');
+				};
+				requisicao.onsuccess = function (evento) {
+					//resultados estao em requisicao.result
+					console.info ('Sucesso ao consultar o banco. Ex.: nome eh '+ requisicao.result.nome);
+					
+					// ##### deletando dados
+					requisicao = banco.transaction(['pessoas'],IDBTransaction.READ_WRITE)
+										.objectStore('pessoas')
+										.delete('123456');
+					requisicao.onsuccess = function (evento) {
+						console.info ('Sucesso ao deletar a pessoa com a chave '+evento.target.result);
+					};
+					requisicao.onerror = function (evento) {
+						console.error ('Erro ao deletar a pessoa com a chave '+evento.target.result);
+					};
+				};
+				
+				// consulta em uma linha
+				// aqui o registro ja teria que ter sido deletado, porem como as transacoes sao feitas em eventos
+				// eh provavel que o registro ainda exista
+				banco.transaction('pessoas').objectStore('pessoas').get('123456').onsuccess = function (evento) {
+					console.info ('consulta em uma linha: nome = '+ evento.target.result.nome );
+				}
+				
+				
+				
+			} // fim do laco para sucesso ao setar versao do banco
+			
+		};
+	}
+
+	</script>
+	
+</body>
+</html>

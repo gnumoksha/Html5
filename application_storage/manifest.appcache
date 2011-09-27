@@ -8,7 +8,7 @@ CACHE MANIFEST
 CACHE:
 index.html
 estilo.css
-js/jquery.min.js
+../js/jquery.min.js
 js/util.js
 
 # versoes alternativas,para uso offline, para paginas acessadas online
@@ -29,7 +29,7 @@ https://*
 #   o firefox nao reconhece apenas o *
 # > as entradas do manifest devem vir da mesma origem (host e porta)
 #   e ter o mesmo eschema do arquivo de manifesto em si
-#
+# > no google chrome, chrome://appcache-internals/
 #
 #
 #
