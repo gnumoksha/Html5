@@ -25,7 +25,22 @@
 	
 	<script type="text/javascript">
 	
+	function logar (string,cor) {
+		if (cor == null || cor == '') cor = 'green';
+		$(function(){
+			$('#message').append(
+				'<span style="background-color:'+cor+'">'+string+'</span>'
+				+'<br/>'+"\n"
+				);
+		});
+	}
+	
 	window.onload = function() {
+		/**
+		 * Referencias
+		 * https://developer.mozilla.org/en/IndexedDB/Using_IndexedDB
+		 * http://www.w3.org/TR/IndexedDB/
+		 */
 		
 		var requisicao;
 		// navegadores baseados em Gecko = mozIndexedDB
@@ -38,20 +53,20 @@
 			// Principais erros:
 			// Usuario negou o acesso, usuario está navegando em modo privado
 			// Tratamento generico para todos os erros:
-			$('#message').html('Erro ao criar/abrir o banco de dados: '+evento.target.errorCode);
+			logar('Erro ao criar/abrir o banco de dados: '+evento.target.errorCode,'red');
 		};
 		requisicao.onsuccess = function (evento) {
-			$('#message').html('Sucesso ao criar/abrir o banco de dados');
+			logar('Sucesso ao criar/abrir o banco de dados');
 			banco = requisicao.result; // result eh uma instancia de IDBDatabase
 			
 			// versao pode ser qualquer coisa
 			// setVersion retorna um objeto IDBRequest
 			requisicao = banco.setVersion ('teste'); 
 			requisicao.onerror = function (evento) {
-				$('#message').html('Erro ao setar a versao do banco de dados: '+evento.target.errorCode);
+				logar('Erro ao setar a versao do banco de dados: '+evento.target.errorCode,'red');
 			}
 			requisicao.onsuccess = function(evento) {
-				$('#message').html('Sucesso ao setar a versao do banco de dados');
+				logar('Sucesso ao setar a versao do banco de dados','#003D3A');
 				
 				// cria uma 'loja', algo semelhante a uma tabela
 				// keyPath eh o campo unico para cada registro
@@ -60,7 +75,11 @@
 				objetoStore.createIndex('email','email',{unique: true});
 				*/
 				
-				// ###### Inserindo dados
+				/*
+				 * ####################
+				 *     INSERINDO DADOS
+				 * ####################
+				 */
 				const dados = [
 					{ cpf: '123456', nome: 'Tobias', email: 'tobiasette5@gmail.com' }
 				];
@@ -69,10 +88,10 @@
 				// usara somente leitura)
 				var transacao = banco.transaction(['pessoas'],IDBTransaction.READ_WRITE);
 				transacao.oncomplete = function (evento) {
-					console.info ('transacao completada!');
+					logar('Insercao: transacao completada!','yellow');
 				};
 				transacao.onerror = function (evento) {
-					console.error ('erro na transacao. Cod: '+evento.target.errorCode);
+					console.error ('Insercao: erro na transacao. Cod: '+evento.target.errorCode);
 				};
 				objetoStore = transacao.objectStore('pessoas');
 				for ( i in dados) {
@@ -80,45 +99,149 @@
 					requisicao.onsuccess = function(evento) {
 						// evento.target.result recebe o valor da chave do item que foi inserido
 						// neste caso é o cpf
-						console.log ('dados com o indice '+evento.target.result+' inseridos!');
+						logar('Insercao: dados com o indice '+evento.target.result+' inseridos!','#4EFF32');
 					};
 				}
 				
-				// ##### obtendo dados
+				/*
+				 * ####################
+				 *    OBTENDO DADOS
+				 * ####################
+				 */
 				transacao = banco.transaction(['pessoas']);
 				objetoStore = transacao.objectStore('pessoas');
 				requisicao = objetoStore.get('123456');
 				requisicao.onerror = function (evento) {
-					console.error ('Erro ao consultar o banco');
+					console.error ('Consulta com get: erro ao consultar o banco');
 				};
 				requisicao.onsuccess = function (evento) {
 					//resultados estao em requisicao.result
-					console.info ('Sucesso ao consultar o banco. Ex.: nome eh '+ requisicao.result.nome);
+					logar('Consulta com get: sucesso ao consultar o banco. Ex.: nome eh '+ requisicao.result.nome,'#3269FF');
 					
-					// ##### deletando dados
+					/*
+					 * ####################
+					 *    DELETANDO DADOS
+					 * ####################
+					 */
 					requisicao = banco.transaction(['pessoas'],IDBTransaction.READ_WRITE)
 										.objectStore('pessoas')
 										.delete('123456');
 					requisicao.onsuccess = function (evento) {
-						console.info ('Sucesso ao deletar a pessoa com a chave '+evento.target.result);
+						logar('Deletar: sucesso ao deletar a pessoa com a chave '+evento.target.result,'#00FFFF');
 					};
 					requisicao.onerror = function (evento) {
-						console.error ('Erro ao deletar a pessoa com a chave '+evento.target.result);
+						console.error ('Deletar: erro ao deletar a pessoa com a chave '+evento.target.result);
 					};
 				};
+				
+				/*
+				 * ####################
+				 *    OBTENDO DADOS
+				 * ####################
+				 */
 				
 				// consulta em uma linha
 				// aqui o registro ja teria que ter sido deletado, porem como as transacoes sao feitas em eventos
 				// eh provavel que o registro ainda exista
 				banco.transaction('pessoas').objectStore('pessoas').get('123456').onsuccess = function (evento) {
-					console.info ('consulta em uma linha: nome = '+ evento.target.result.nome );
+					logar('Consulta em uma linha: nome = '+ evento.target.result.nome,'#06542C' );
 				}
 				
+				// consulta com cursor
+				objetoStore = banco.transaction('pessoas').objectStore('pessoas');
+				objetoStore.openCursor().onsuccess = function (evento) {
+					cursor = evento.target.result;
+					if (cursor) {
+						logar('Consulta com cursor: nome para o cpf '+cursor.key+' eh '+cursor.value.nome,'#4E506D');
+						cursor.continue(); //incremento
+					}
+					else {
+						logar ('Consulta com cursor: fim dos resultados','#4E506D');
+					}
+				};
 				
+				/**
+				 * Caso a procura seja feita informando um campo que nao eh a chave
+				 * seria necessario percorrer cada registro, atraves da chave, para encontra-lo.
+				 * Para resolver isso, sao usado indices
+				 */
+				objetoStore = banco.transaction(['pessoas']).objectStore(['pessoas']);
+				indice = objetoStore.index('nome');
+				indice.get('Tobias').onsuccess = function(evento) {
+					if (evento.target.result) {
+						//retorna o resultado com a menor chave
+						logar ('pesquisa com indice e valor para ele: nome eh '+evento.target.result.nome,'#7F4A00');
+					}
+					else {
+						logar ('pesquisa com indice e valor para ele: nenhum resultado encontrado','#7F4A00');
+					}
+					
+				};
 				
-			} // fim do laco para sucesso ao setar versao do banco
+				// pesquisa com indice e cursor
+				// para percorrer todos os resultados obtidos procurando pelo indice
+				objetoStore = banco.transaction(['pessoas']).objectStore(['pessoas']);
+				indice = objetoStore.index('nome');
+				indice.openCursor().onsuccess = function (evento) {
+					cursor = evento.target.result;
+					if (cursor) {
+						// cursor.key eh o nome, e cursor.value eh o objeto
+						logar('pesquisa com indice e cursor: key= '+cursor.key+' nome='+cursor.value.nome
+						+' email='+cursor.value.email,'#DBAA67');
+						cursor.continue();
+					}
+				};
+				
+				// pesquisa com indice e key cursor
+				// para percorrer todos os resultados obtidos procurando pelo indice
+				/*objetoStore = banco.transaction(['pessoas']).objectStore(['pessoas']);
+				indice = objetoStore.index('nome');
+				indice.openKeyCursor().onsuccess = function (evento) {
+					cursor = evento.target.result;
+					if (cursor) {
+						#FIXME cursor.value ESTAH RETORNANDO UNDEFINED
+						// cursor.key eh o nome, e cursor.value ESTAH RETORNANDO UNDEFINED
+						logar('pesquisa com indice e key cursor: key= '+cursor.key+' valor='+cursor.value);
+						console.log (cursor);
+						cursor.continue();
+					}
+				};
+				*/
+				
+				// limitando os resultados dos cursores
+				// casa apenas com o str
+				parametro = IDBKeyRange.only('str');
+				// qualquer coisa que inicie com str, inclusive str 
+				parametro1 = IDBKeyRange.lowerBound('Tobias');
+				// qualquer coisa que inicie com str, mas nao str
+				parametro = IDBKeyRange.lowerBound('str', true);
+				// qualquer coisa ate str, nao nao incluindo str
+				parametro = IDBKeyRange.upperBound("str", true);
+				// qualquer coisa entre str1 e str2, mas nao incluindo str2
+				parametro = IDBKeyRange.bound("str1", "str2", false, true);
+				objetoStore = banco.transaction(['pessoas']).objectStore(['pessoas']);
+				indice = objetoStore.index('nome');
+				indice.openCursor(parametro1,IDBCursor.PREV_DUPLICATE).onsuccess = function(evento) {
+					cursor = evento.target.result;
+					if (cursor) {
+						logar('consulta cursor com range: nome='+cursor.value.nome+' cpf='+cursor.value.cpf,'#BBB3D6');
+						cursor.continue();
+					}
+					else {
+						logar('consulta cursor com range: fim dos resultados','#BBB3D6');
+					}
+				};
+				
+				//para ordenar resultados
+				// Em ordem descrecente e nao repeditos = openCursor(parametro1,IDBCursor.PREV_NO_DUPLICATE)
+				// Em ordem crecente e nao repeditos = openCursor(parametro1,IDBCursor.NEXT_NO_DUPLICATE)
+				// Em ordem descrecente e repeditos = openCursor(parametro1,IDBCursor.PREV_DUPLICATE)
+				// Em ordem crecente e repeditos = openCursor(parametro1,IDBCursor.NEXT_DUPLICATE)
+				// #XXX o metodo IDBCursor.PREV nao retorna resultados repetidos. Estah diferente do padrao
+				
+			} // fim do if para sucesso ao setar versao do banco
 			
-		};
+		}; // fim do if para criar/abrir o banco de dados
 	}
 
 	</script>
